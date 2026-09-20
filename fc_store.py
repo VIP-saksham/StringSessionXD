@@ -32,3 +32,7 @@ def add_chat(chat, url, title):
 
 def clear_all():
     _save([])
+
+
+def set_chats(items):
+    _save(items)

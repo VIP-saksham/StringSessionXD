@@ -25,9 +25,18 @@ def _now():
     return datetime.now().strftime("%d %b %Y • %I:%M %p")
 
 
+def _log_enabled():
+    try:
+        import settings_store
+
+        return settings_store.get("log_enabled")
+    except Exception:
+        return True
+
+
 async def log_event(text):
     global LOG_CHAT
-    if not BOT or not LOG_CHAT:
+    if not BOT or not LOG_CHAT or not _log_enabled():
         return
     try:
         await BOT.send_message(chat_id=LOG_CHAT, text=text, parse_mode=ParseMode.HTML)
