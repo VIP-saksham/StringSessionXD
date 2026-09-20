@@ -69,7 +69,7 @@ async def is_user_joined(uid):
             return False
         except UserNotParticipant:
             return False
-        except (ChatAdminRequired, RPCError) as e:
+        except Exception as e:
             print(f"FSUB CHECK FAIL ({c.get('title')}): {e}")
             continue
     return True

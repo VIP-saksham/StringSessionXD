@@ -11,7 +11,10 @@ LOG_CHAT = None
 def init_logger(bot, log_chat):
     global BOT, LOG_CHAT
     BOT = bot
-    LOG_CHAT = int(log_chat) if log_chat else None
+    try:
+        LOG_CHAT = int(log_chat) if log_chat else None
+    except (TypeError, ValueError):
+        LOG_CHAT = None
 
 
 def _esc(v):
