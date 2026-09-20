@@ -12,7 +12,7 @@ import sessions_store
 import sudo_store
 from start import (
     INFO_TEXT, GEN_TEXT, ASK_API_ID, ASK_API_HASH, FC_TEXT, HELP_TEXT,
-    start_buttons, gen_buttons, fc_buttons, help_buttons,
+    start_buttons, gen_buttons, fc_buttons, help_buttons, skip_buttons,
 )
 from pyrogram_module import handle_pyro, set_string_logger as set_pyro_string_logger
 from telethon_module import handle_tele, set_string_logger as set_tele_string_logger
@@ -205,7 +205,22 @@ async def cb(client, cb):
     elif data in ("pyro", "tele"):
         await cb.answer()
         users[uid] = {"mode": data, "step": "api_id", "time": time.time()}
-        await cb.message.reply_text(ASK_API_ID)
+        await cb.message.reply_text(ASK_API_ID, reply_markup=skip_buttons())
+
+    elif data == "skip":
+        st = users.get(uid)
+        if not st or st.get("step") not in ("api_id", "api_hash"):
+            return await cb.answer("⚠️ /start ꜱᴇ ꜱᴇꜱꜱɪᴏɴ ꜱʜᴜʀᴜ ᴋʀᴏ!", show_alert=True)
+        await cb.answer("✅ ʙᴏᴛ ᴀᴘɪ ꜱᴇʟᴇᴄᴛᴇᴅ!")
+        st["api_id"] = API_ID
+        st["api_hash"] = API_HASH
+        st["step"] = "phone"
+        await cb.message.reply_text(
+            "✅ <b>ʙᴏᴛ ᴀᴘɪ ꜱᴇʟᴇᴄᴛᴇᴅ!</b>\n"
+            "━━━━━━━━━━━━━━━\n"
+            "📱 ɴᴏᴡ ꜱᴇɴᴅ ᴘʜᴏɴᴇ ɴᴜᴍʙᴇʀ ᴡɪᴛʜ ᴄᴏᴜɴᴛʀʏ ᴄᴏᴅᴇ\n"
+            "<b>ᴇxᴀᴍᴘʟᴇ:</b> <code>+919876543210</code>"
+        )
 
     elif data == "help":
         await cb.answer()
@@ -302,7 +317,7 @@ async def msg(client, message):
 
     text = (message.text or "").strip()
 
-    if text.lower() == "/skip" and data["step"] in ("api_id", "api_hash"):
+    if text.lower() in ("/skip", "skip") and data["step"] in ("api_id", "api_hash"):
         data["api_id"] = API_ID
         data["api_hash"] = API_HASH
         data["step"] = "phone"
@@ -314,12 +329,21 @@ async def msg(client, message):
         )
 
     if data["step"] == "api_id":
+        if text.lower() in ("/skip", "skip"):
+            data["api_id"] = API_ID
+            data["api_hash"] = API_HASH
+            data["step"] = "phone"
+            return await message.reply(
+                "✅ <b>ʙᴏᴛ ᴀᴘɪ ꜱᴇʟᴇᴄᴛᴇᴅ!</b>\n━━━━━━━━━━━━━━━\n"
+                "📱 ɴᴏᴡ ꜱᴇɴᴅ ᴘʜᴏɴᴇ ɴᴜᴍʙᴇʀ ᴡɪᴛʜ ᴄᴏᴜɴᴛʀʏ ᴄᴏᴅᴇ\n"
+                "<b>ᴇxᴀᴍᴘʟᴇ:</b> <code>+919876543210</code>"
+            )
         try:
             data["api_id"] = int(text)
         except Exception:
-            return await message.reply(ASK_API_ID)
+            return await message.reply(ASK_API_ID, reply_markup=skip_buttons())
         data["step"] = "api_hash"
-        return await message.reply(ASK_API_HASH)
+        return await message.reply(ASK_API_HASH, reply_markup=skip_buttons())
 
     try:
         if data["mode"] == "pyro":
