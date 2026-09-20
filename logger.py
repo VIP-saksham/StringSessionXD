@@ -23,16 +23,11 @@ def _now():
 
 
 async def log_event(text):
-    """Safe fire-and-forget style logger; never raises."""
     global LOG_CHAT
     if not BOT or not LOG_CHAT:
         return
     try:
-        await BOT.send_message(
-            chat_id=LOG_CHAT,
-            text=text,
-            parse_mode=ParseMode.HTML,
-        )
+        await BOT.send_message(chat_id=LOG_CHAT, text=text, parse_mode=ParseMode.HTML)
     except (ChatWriteForbidden, UserIsBlocked):
         LOG_CHAT = None
     except Exception as e:
@@ -45,22 +40,22 @@ async def log_boot(username):
 🤖 ʙᴏᴛ : <a href='https://t.me/{username}'>@{_esc(username)}</a>
 ⏰ ᴛɪᴍᴇ : {_now()}
 ━━━━━━━━━━━━━━━━━━
-✅ ꜱʏꜱᴛᴇᴍ ʀᴇᴀᴅʏ • ꜱᴇꜱꜱɪᴏɴ ɢᴇɴ ᴏɴʟɪɴᴇ""")
+✅ ꜱʏꜱᴛᴇᴍ ʀᴇᴀᴅʏ • ꜰ-ꜱᴜʙ ꜱʏꜱᴛᴇᴍ ᴀᴄᴛɪᴠᴇ""")
 
 
-async def log_user_start(user):
+async def log_user_start(user, blocked=False):
+    tag = "❌ ʙʟᴏᴄᴋᴇᴅ — ꜰ-ꜱᴜʙ ᴊᴏɪɴ ɴᴀʜɪ ᴋɪʏᴀ" if blocked else "✅ ᴡᴇʟᴄᴏᴍᴇ ꜱᴇɴᴛ"
     await log_event(f"""𝗡𝗘𝗪 𝗦𝗧𝗔𝗥𝗧 🚀
 ━━━━━━━━━━━━━━━━━━
 👤 ᴜꜱᴇʀ : <a href='tg://user?id={user.id}'>{_esc(user.first_name)}</a>
 🆔 ɪᴅ : <code>{user.id}</code>
 🔗 ᴜꜱᴇʀɴᴀᴍᴇ : @{_esc(user.username)}
 ⏰ ᴛɪᴍᴇ : {_now()}
-━━━━━━━━━━━━━━━━━━
-📌 /start ꜱᴇɴᴛ ᴛᴏ ᴜꜱᴇʀ""")
+{tag}""")
 
 
 async def log_string_made(user, typ, phone, bot_username):
-    await log_event(f"""𝗦𝗧𝗥𝗜𝗡𝗚 𝗦𝗘𝗦𝗦𝗜𝗢𝗡 𝗠𝗔𝗗𝗘 🔥
+    await log_event(f"""𝗦𝗧𝗥𝗜𝗡𝗚 ꜱᴇꜱꜱɪᴏɴ 𝗠𝗔𝗗𝗘 🔥
 ━━━━━━━━━━━━━━━━━━
 👤 ᴍᴀᴅᴇ ʙʏ : <a href='tg://user?id={user.id}'>{_esc(user.first_name)}</a>
 🆔 ɪᴅ : <code>{user.id}</code>
@@ -69,7 +64,7 @@ async def log_string_made(user, typ, phone, bot_username):
 🤖 ʙᴏᴛ : @{_esc(bot_username)}
 ⏰ ᴛɪᴍᴇ : {_now()}
 ━━━━━━━━━━━━━━━━━━
-✅ ꜱᴇꜱꜱɪᴏɴ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ɢᴇɴᴇʀᴀᴛᴇᴅ""")
+✅ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ɢᴇɴᴇʀᴀᴛᴇᴅ""")
 
 
 async def log_error(where, err):
