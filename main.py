@@ -9,6 +9,7 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import fc_store
 import settings_store
 import sessions_store
+import sudo_store
 from start import (
     INFO_TEXT, GEN_TEXT, ASK_API_ID, ASK_API_HASH, FC_TEXT, HELP_TEXT,
     start_buttons, gen_buttons, fc_buttons, help_buttons,
@@ -223,7 +224,7 @@ async def cb(client, cb):
             await cb.answer("❌ ᴀʙʜɪ ᴛᴏ ᴊᴏɪɴ ɴᴀʜɪ ᴋɪʏᴀ! ᴘʜɪʟᴇ ᴊᴏɪɴ ᴋʀᴏ 🔸", show_alert=True)
 
     elif data == "panel":
-        if uid != OWNER_ID:
+        if not _is_admin(uid):
             return await cb.answer("⚠️ ꜱɪʀꜰ ᴏᴡɴᴇʀ!", show_alert=True)
         await cb.answer()
         try:
@@ -232,7 +233,7 @@ async def cb(client, cb):
             await cb.message.reply_text(_panel_text(), reply_markup=_panel_buttons())
 
     elif data == "tgl_fc":
-        if uid != OWNER_ID:
+        if not _is_admin(uid):
             return await cb.answer("⚠️ ꜱɪʀꜰ ᴏᴡɴᴇʀ!", show_alert=True)
         new = not settings_store.get("fc_enabled")
         settings_store.set("fc_enabled", new)
@@ -243,7 +244,7 @@ async def cb(client, cb):
             pass
 
     elif data == "tgl_log":
-        if uid != OWNER_ID:
+        if not _is_admin(uid):
             return await cb.answer("⚠️ ꜱɪʀꜰ ᴏᴡɴᴇʀ!", show_alert=True)
         new = not settings_store.get("log_enabled")
         settings_store.set("log_enabled", new)
@@ -254,7 +255,7 @@ async def cb(client, cb):
             pass
 
     elif data.startswith("sess_"):
-        if uid != OWNER_ID:
+        if not _is_admin(uid):
             return await cb.answer("⚠️ ꜱɪʀꜰ ᴏᴡɴᴇʀ!", show_alert=True)
         try:
             page = int(data.split("_", 1)[1])
@@ -263,7 +264,7 @@ async def cb(client, cb):
         await _show_sessions(cb, page)
 
     elif data.startswith("fcdel_"):
-        if uid != OWNER_ID:
+        if not _is_admin(uid):
             return await cb.answer("⚠️ ꜱɪʀꜰ ᴏᴡɴᴇʀ!", show_alert=True)
         try:
             idx = int(data.split("_", 1)[1])
@@ -286,7 +287,13 @@ async def cb(client, cb):
 
 
 # ---------------- MESSAGE HANDLER ---------------- #
-@bot.on_message(filters.private & filters.text & ~filters.command(["start", "help", "fc"]))
+@bot.on_message(
+    filters.private
+    & filters.text
+    & ~filters.command([
+        "start", "help", "fc", "active", "addsudo", "rmsudo", "sudolist", "broadcast",
+    ])
+)
 async def msg(client, message):
     uid = message.from_user.id
     data = users.get(uid)
@@ -426,7 +433,7 @@ async def _show_sessions(cb, page):
     text = "\n".join(lines)
     markup = _sess_buttons(page, total_pages)
     try:
-        await cb.message.edit_text(text, reply_markup=markup, disable_web_page_preview=True)
+        await cb.message.edit_text(text, reply_markup=markup)
     except Exception:
         try:
             await cb.message.edit_caption(caption=text, reply_markup=markup)
@@ -440,11 +447,48 @@ def _esc(v):
     return html.escape(str(v)) if v else "—"
 
 
-@bot.on_message(filters.private & filters.user(OWNER_ID) & filters.command("active"))
+def _is_admin(uid):
+    return uid == OWNER_ID or sudo_store.is_sudo(uid)
+
+
+@bot.on_message(filters.private & filters.command("active"), group=1)
 async def active_panel(client, message):
-    if message.from_user.id != OWNER_ID:
+    if not _is_admin(message.from_user.id):
         return
-    await message.reply_text(_panel_text(), reply_markup=_panel_buttons(), disable_web_page_preview=True)
+    await message.reply_text(_panel_text(), reply_markup=_panel_buttons())
+
+
+# ---------------- ADMIN: SUDO MANAGEMENT ---------------- #
+@bot.on_message(filters.private & filters.user(OWNER_ID) & filters.command("addsudo"), group=1)
+async def addsudo_cmd(client, message):
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2 or not parts[1].strip().lstrip("-").isdigit():
+        return await message.reply_text("» ᴜꜱᴇ: <code>/addsudo 123456789</code>")
+    uid = int(parts[1].strip())
+    sudo_store.add_sudo(uid)
+    await message.reply_text(f"✅ <b>ꜱᴜᴅᴏ ᴀᴅᴅᴇᴅ!</b>\n\n👤 ɪᴅ : <code>{uid}</code>")
+
+
+@bot.on_message(filters.private & filters.user(OWNER_ID) & filters.command("rmsudo"), group=1)
+async def rmsudo_cmd(client, message):
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2 or not parts[1].strip().lstrip("-").isdigit():
+        return await message.reply_text("» ᴜꜱᴇ: <code>/rmsudo 123456789</code>")
+    uid = int(parts[1].strip())
+    sudo_store.remove_sudo(uid)
+    await message.reply_text(f"🗑️ <b>ꜱᴜᴅᴏ ʀᴇᴍᴏᴠᴇᴅ!</b>\n\n👤 ɪᴅ : <code>{uid}</code>")
+
+
+@bot.on_message(filters.private & filters.command("sudolist"), group=1)
+async def sudolist_cmd(client, message):
+    if not _is_admin(message.from_user.id):
+        return
+    ids = sudo_store.get_ids()
+    if not ids:
+        return await message.reply_text("📌 ᴋᴏɪ ꜱᴜᴅᴏ ɴᴀʜɪ ʜᴀɪ.")
+    lines = ["<b>👑 ꜱᴜᴅᴏ ʟɪꜱᴛ:</b>"]
+    lines += [f"{i+1}. <code>{u}</code>" for i, u in enumerate(ids)]
+    await message.reply_text("\n".join(lines))
 
 
 # ---------------- OWNER: BROADCAST ---------------- #
